@@ -1,8 +1,9 @@
 "use strict";
 
-// 逻辑层：棋盘固定为 8 列 × 6 行；所有方块都是高 1、宽 1–4 的横向方块。
 const COLS = 8;
 const ROWS = 6;
+const MAX_BLOCK_WIDTH = 4;
+const SKIN_COUNT = 5;
 const SCORE_PER_LINE = 8;
 // 四种方块的出现权重：数值越大，出现得越频繁；不需要相加为 100。
 const WIDTH_1_WEIGHT = 35;
@@ -30,8 +31,12 @@ const ui = {
   dragGuides: document.querySelector("#drag-guides"),
   columnGuide: document.querySelector("#column-guide"),
   dropGuide: document.querySelector("#drop-guide"),
+  skinUpload: document.querySelector("#skin-upload"),
+  resetSkins: document.querySelector("#reset-skins"),
+  skinSlots: [...document.querySelectorAll(".skin-slot")],
 };
 
+const skinImages = Array(SKIN_COUNT).fill(null);
 let blocks = [];
 let nextId = 1;
 let score = 0;
@@ -60,11 +65,11 @@ function pickWeightedOption(options) {
   return options[options.length - 1];
 }
 
-const selectedBlock = () => blocks.find((block) => block.id === selectedId) ?? null;
-
-function occupiedByOther(block, x, y) {
-  return occupiedBy(blocks, block, x, y);
+function createBlock(x, y, w) {
+  return { id: nextId++, x, y, w, skin: randomInt(0, SKIN_COUNT - 1) };
 }
+
+const selectedBlock = () => blocks.find((block) => block.id === selectedId) ?? null;
 
 function occupiedBy(blockSet, block, x, y) {
   return blockSet.some((other) => {
@@ -75,39 +80,39 @@ function occupiedBy(blockSet, block, x, y) {
 
 function canMove(block, direction) {
   const nextX = block.x + direction;
-  return nextX >= 0 && nextX + block.w <= COLS && !occupiedByOther(block, nextX, block.y);
+  return nextX >= 0 && nextX + block.w <= COLS && !occupiedBy(blocks, block, nextX, block.y);
 }
 
-function canFall(block) {
-  return block.y < ROWS - 1 && !occupiedByOther(block, block.x, block.y + 1);
+function canFall(block, blockSet = blocks) {
+  return block.y < ROWS - 1 && !occupiedBy(blockSet, block, block.x, block.y + 1);
+}
+
+function dropOneStep(blockSet) {
+  let didFall = false;
+  [...blockSet].sort((a, b) => b.y - a.y || a.x - b.x).forEach((block) => {
+    if (canFall(block, blockSet)) {
+      block.y += 1;
+      didFall = true;
+    }
+  });
+  return didFall;
 }
 
 function projectedDropY(block) {
   let y = block.y;
-  while (y < ROWS - 1 && !occupiedByOther(block, block.x, y + 1)) y += 1;
+  while (y < ROWS - 1 && !occupiedBy(blocks, block, block.x, y + 1)) y += 1;
   return y;
 }
 
 const pause = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 async function fallUntilStable(token) {
-  let didFall;
-  do {
+  while (true) {
     if (token !== resolutionToken) return false;
-    didFall = false;
-    // 从下往上处理：下方方块先让位，上方满足条件的方块即可在同一轮继续下落。
-    [...blocks].sort((a, b) => b.y - a.y || a.x - b.x).forEach((block) => {
-      if (canFall(block)) {
-        block.y += 1;
-        didFall = true;
-      }
-    });
-    if (didFall) {
-      render();
-      await pause(FALL_STEP_DELAY);
-    }
-  } while (didFall);
-  return true;
+    if (!dropOneStep(blocks)) return true;
+    render();
+    await pause(FALL_STEP_DELAY);
+  }
 }
 
 function fullRows(blockSet = blocks) {
@@ -124,16 +129,7 @@ function fullRows(blockSet = blocks) {
 
 function wouldClearAfterFalling(candidate) {
   const simulated = candidate.map((block) => ({ ...block }));
-  let didFall;
-  do {
-    didFall = false;
-    [...simulated].sort((a, b) => b.y - a.y || a.x - b.x).forEach((block) => {
-      if (block.y < ROWS - 1 && !occupiedBy(simulated, block, block.x, block.y + 1)) {
-        block.y += 1;
-        didFall = true;
-      }
-    });
-  } while (didFall);
+  while (dropOneStep(simulated)) {}
   return fullRows(simulated).length > 0;
 }
 
@@ -163,7 +159,7 @@ function availableStarts(width, row) {
   const starts = [];
   for (let x = 0; x <= COLS - width; x += 1) {
     const probe = { id: -1, x, y: row, w: width };
-    if (!occupiedByOther(probe, x, row)) starts.push(x);
+    if (!occupiedBy(blocks, probe, x, row)) starts.push(x);
   }
   return starts;
 }
@@ -173,14 +169,14 @@ function spawnIncomingRow(row = ROWS - 1) {
   let remainingCells = randomInt(4, 7);
   while (remainingCells > 0) {
     const options = [];
-    for (let width = 1; width <= Math.min(4, remainingCells); width += 1) {
+    for (let width = 1; width <= Math.min(MAX_BLOCK_WIDTH, remainingCells); width += 1) {
       const starts = availableStarts(width, row);
       if (starts.length > 0) options.push({ width, starts });
     }
     // 至少有足够的空格放下剩余格数；这里始终能得到宽 1 的方案。
     const option = pickWeightedOption(options);
     const width = option.width;
-    blocks.push({ id: nextId++, x: option.starts[randomInt(0, option.starts.length - 1)], y: row, w: width });
+    blocks.push(createBlock(option.starts[randomInt(0, option.starts.length - 1)], row, width));
     remainingCells -= width;
   }
 }
@@ -197,10 +193,10 @@ function spawnSafeInitialRows(topRow) {
 
   // 极少数连续重抽失败时，使用一组固定且安全的 4 格 / 5 格布局。
   blocks = [
-    { id: 1, x: 0, y: topRow, w: 2 },
-    { id: 2, x: 4, y: topRow, w: 2 },
-    { id: 3, x: 1, y: topRow + 1, w: 3 },
-    { id: 4, x: 5, y: topRow + 1, w: 2 },
+    { id: 1, x: 0, y: topRow, w: 2, skin: 0 },
+    { id: 2, x: 4, y: topRow, w: 2, skin: 1 },
+    { id: 3, x: 1, y: topRow + 1, w: 3, skin: 2 },
+    { id: 4, x: 5, y: topRow + 1, w: 2, skin: 3 },
   ];
   nextId = 5;
 }
@@ -235,16 +231,34 @@ function render() {
       ui.board.append(node);
     }
     existing.delete(block.id);
-    node.className = `block cat-${block.id % 5}${block.id === selectedId ? " selected" : ""}${clearingRows.has(block.y) ? " clearing" : ""}`;
+    node.className = `block cat-${block.skin}${skinImages[block.skin] ? " custom-skin" : ""}${block.id === selectedId ? " selected" : ""}${clearingRows.has(block.y) ? " clearing" : ""}`;
+    node.dataset.skin = String(block.skin + 1);
     node.style.setProperty("--x", block.x);
     node.style.setProperty("--y", block.y);
     node.style.setProperty("--w", block.w);
+    node.style.backgroundImage = skinImages[block.skin] ? `url("${skinImages[block.skin]}")` : "";
     node.setAttribute("aria-label", `宽${block.w}格的方块，第${block.y + 1}行第${block.x + 1}列`);
   });
   existing.forEach((node) => node.remove());
   ui.score.textContent = String(score);
   ui.moves.textContent = String(moves);
   updateDragGuides();
+}
+
+function updateSkinLibrary() {
+  ui.skinSlots.forEach((slot, index) => {
+    slot.style.backgroundImage = skinImages[index] ? `url("${skinImages[index]}")` : "";
+  });
+}
+
+function replaceSkinImages(files) {
+  Array.from(files).slice(0, SKIN_COUNT).forEach((file, index) => {
+    if (!file.type.startsWith("image/")) return;
+    if (skinImages[index]) URL.revokeObjectURL(skinImages[index]);
+    skinImages[index] = URL.createObjectURL(file);
+  });
+  updateSkinLibrary();
+  render();
 }
 
 function updateDragGuides() {
@@ -362,8 +376,7 @@ async function newGame() {
   spawnSafeInitialRows(middleTopRow);
   ui.status.textContent = "两行初始方块正在从中部一起落下…";
   render();
-  const initialCleared = await resolveChains(token);
-  if (initialCleared === null || token !== resolutionToken) return;
+  if ((await resolveChains(token)) === null || token !== resolutionToken) return;
   isResolving = false;
   ui.status.textContent = "初始两行已完成下落检查。按住任意方块，向左或向右拖动；松手后自动结算。";
   render();
@@ -371,8 +384,21 @@ async function newGame() {
 
 document.querySelector("#restart-button").addEventListener("click", () => void newGame());
 document.querySelector("#again-button").addEventListener("click", () => void newGame());
+ui.skinUpload.addEventListener("change", () => {
+  replaceSkinImages(ui.skinUpload.files);
+  ui.status.textContent = "皮肤库已更新，新生成的方块会随机使用这 5 个皮肤槽位。";
+});
+ui.resetSkins.addEventListener("click", () => {
+  skinImages.forEach((image) => image && URL.revokeObjectURL(image));
+  skinImages.fill(null);
+  ui.skinUpload.value = "";
+  updateSkinLibrary();
+  render();
+  ui.status.textContent = "已恢复默认 1–5 号颜色皮肤。";
+});
 document.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "r") void newGame();
 });
 
+updateSkinLibrary();
 void newGame();
