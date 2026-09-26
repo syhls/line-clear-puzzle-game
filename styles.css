@@ -127,8 +127,6 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
 .game-over[hidden] { display: none; }
 .game-over p, .game-over strong { margin: 0; }.game-over p { font-size: 25px; font-weight: 800; }.game-over strong { font-size: 17px; }.game-over button { margin-top: 8px; padding: 10px 20px; border: 0; border-radius: 10px; color: var(--ink); background: #ffd66b; font-weight: 800; }
 
-.rotate-notice { display: none; }
-
 @media (max-height: 520px) and (orientation: landscape) {
   .game-shell {
     min-height: 96vh;
@@ -144,21 +142,21 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   .status { margin-top: 8px; font-size: 12px; }
 }
 
-@media (max-width: 700px) and (orientation: portrait) {
-  .game-shell { display: none; }
-  .rotate-notice {
-    display: grid;
-    width: min(84vw, 330px);
-    gap: 10px;
-    padding: 28px;
-    border: 2px solid #fffdf7;
-    border-radius: 26px;
-    color: var(--ink);
-    text-align: center;
-    background: var(--paper);
-    box-shadow: 0 18px 50px rgb(97 57 30 / 24%);
+@media (orientation: portrait) {
+  :root { --cell: min(clamp(32px, 11vw, 52px), calc((100vw - 32px) / 8)); }
+  body { min-width: 0; place-items: start center; }
+  .game-shell {
+    width: 100vw;
+    min-height: 100vh;
+    padding: 10px 12px;
+    border-radius: 0;
   }
-  .rotate-notice span { color: var(--coral); font-size: 56px; line-height: 1; }
-  .rotate-notice strong { font-size: 22px; }
-  .rotate-notice p { margin: 0; color: var(--muted); font-size: 15px; }
+  .game-header { gap: 8px; margin-bottom: 8px; }
+  .eyebrow { display: none; }
+  h1 { font-size: clamp(20px, 6vw, 25px); }
+  .header-metrics { gap: 4px; font-size: 11px; }
+  .header-metrics span { padding: 5px 6px; }
+  .header-metrics strong { margin-left: 2px; font-size: 15px; }
+  .icon-button { width: 34px; height: 34px; font-size: 20px; }
+  .status { margin-top: 9px; font-size: 12px; }
 }
