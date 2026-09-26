@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="8×6 推行消除小游戏原型" />
     <title>猫咪推行消除</title>
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=5" />
   </head>
   <body>
     <main class="game-shell">
@@ -31,9 +31,13 @@
           </div>
         </div>
         <div id="game-over" class="game-over" hidden>
-          <p>棋盘到顶了</p>
-          <strong id="final-score">0 分</strong>
-          <button id="again-button" type="button">再玩一局</button>
+          <div class="end-panel end-panel-left" aria-hidden="true"></div>
+          <div class="end-panel end-panel-right" aria-hidden="true"></div>
+          <div class="game-over-content">
+            <p>今日房间已满</p>
+            <strong id="final-score">0 分</strong>
+            <button id="again-button" type="button">再玩一局</button>
+          </div>
         </div>
       </section>
 
@@ -41,6 +45,6 @@
         按住任意方块，向左或向右拖动；松手后自动结算。
       </p>
     </main>
-    <script src="game.js?v=4"></script>
+    <script src="game.js?v=5"></script>
   </body>
 </html>

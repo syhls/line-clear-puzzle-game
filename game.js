@@ -16,10 +16,10 @@ const WIDTH_WEIGHTS = {
   3: WIDTH_3_WEIGHT,
   4: WIDTH_4_WEIGHT,
 };
-const FALL_STEP_DELAY = 150;
-const CLEAR_DELAY = 230;
-const RISE_PAUSE = 360;
-const RISE_ANIMATION_DELAY = 250;
+const FALL_STEP_DELAY = 210;
+const CLEAR_DELAY = 330;
+const RISE_PAUSE = 500;
+const RISE_ANIMATION_DELAY = 340;
 
 // 皮肤接口：填入图片的相对路径或网址即可覆盖对应颜色皮肤；保留 null 则使用默认颜色。
 // 例如："assets/skin-1.png"。五个槽位会被新生成的方块随机选用。
