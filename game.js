@@ -7,8 +7,8 @@ const SKIN_COUNT = 5;
 const SCORE_PER_LINE = 8;
 // 四种方块的出现权重：数值越大，出现得越频繁；不需要相加为 100。
 const WIDTH_1_WEIGHT = 35;
-const WIDTH_2_WEIGHT = 35;
-const WIDTH_3_WEIGHT = 20;
+const WIDTH_2_WEIGHT = 25;
+const WIDTH_3_WEIGHT = 40;
 const WIDTH_4_WEIGHT = 20;
 const WIDTH_WEIGHTS = {
   1: WIDTH_1_WEIGHT,
