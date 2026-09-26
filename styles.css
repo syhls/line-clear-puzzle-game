@@ -82,6 +82,17 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   transition: left .12s ease, top .12s ease, width .12s ease;
 }
 .drop-guide[hidden] { display: none; }
+.origin-guide {
+  position: absolute;
+  left: calc(var(--guide-x) * var(--cell) + 5px);
+  top: calc(var(--guide-y) * var(--cell) + 5px);
+  width: calc(var(--guide-w) * var(--cell) - 10px);
+  height: calc(var(--cell) - 10px);
+  border: 2px dashed rgb(74 105 150 / 78%);
+  border-radius: 10px;
+  background: rgb(207 227 255 / 24%);
+}
+.origin-guide[hidden] { display: none; }
 
 .block {
   position: absolute;
