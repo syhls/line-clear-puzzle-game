@@ -231,8 +231,7 @@ function render() {
     }
     existing.delete(block.id);
     const skinSource = SKIN_SOURCES[block.skin];
-    node.className = `block cat-${block.skin}${skinSource ? " custom-skin" : ""}${block.id === selectedId ? " selected" : ""}${clearingRows.has(block.y) ? " clearing" : ""}`;
-    node.dataset.skin = String(block.skin + 1);
+    node.className = `block cat-${block.skin}${block.id === selectedId ? " selected" : ""}${clearingRows.has(block.y) ? " clearing" : ""}`;
     node.style.setProperty("--x", block.x);
     node.style.setProperty("--y", block.y);
     node.style.setProperty("--w", block.w);
