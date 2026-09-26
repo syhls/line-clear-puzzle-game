@@ -109,10 +109,26 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   box-shadow: inset 0 -4px 0 rgb(79 45 19 / 18%), 0 2px 0 rgb(79 45 19 / 18%);
   cursor: grab;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
   transition: left .12s ease, top .18s ease, transform .14s ease, filter .14s ease;
 }
 .block:active { cursor: grabbing; }
-.block::after { content: "● ᴥ ●"; font-weight: 900; white-space: nowrap; }
+.block::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 20px;
+  border: 2px solid rgb(71 49 34 / 62%);
+  border-radius: 48% 48% 42% 42%;
+  transform: translate(-50%, -42%);
+  background:
+    radial-gradient(circle at 33% 40%, rgb(71 49 34 / 70%) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 67% 40%, rgb(71 49 34 / 70%) 0 2px, transparent 2.5px);
+  pointer-events: none;
+}
 .block.custom-skin::after { display: none; }
 .block::before {
   content: attr(data-skin);
