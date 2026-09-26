@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="8×6 推行消除小游戏原型" />
     <title>客栈住宿</title>
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <main class="game-shell">
@@ -31,13 +31,9 @@
           </div>
         </div>
         <div id="game-over" class="game-over" hidden>
-          <div class="end-panel end-panel-left" aria-hidden="true"></div>
-          <div class="end-panel end-panel-right" aria-hidden="true"></div>
-          <div class="game-over-content">
-            <p>今日房间已满</p>
-            <strong id="final-score">0 分</strong>
-            <button id="again-button" type="button">再玩一局</button>
-          </div>
+          <p>今日房间已满</p>
+          <strong id="final-score">0 分</strong>
+          <button id="again-button" type="button">再玩一局</button>
         </div>
       </section>
 
@@ -45,6 +41,6 @@
         按住任意方块，向左或向右拖动；松手后自动结算。
       </p>
     </main>
-    <script src="game.js?v=5"></script>
+    <script src="game.js?v=6"></script>
   </body>
 </html>

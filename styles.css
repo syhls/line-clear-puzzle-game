@@ -4,8 +4,6 @@
   --paper: #fff8ee;
   --line: #d7c3aa;
   --coral: #e96f55;
-  --end-left: #e96f55;
-  --end-right: #213142;
   --cell: min(clamp(42px, 12vh, 86px), calc((94vw - 48px) / 8));
 }
 
@@ -125,19 +123,9 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
 
 .status { grid-area: status; min-height: 22px; margin: 16px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
 
-.game-over { position: absolute; inset: 0; z-index: 3; overflow: hidden; border-radius: 14px; color: #fff; text-align: center; background: #213142; }
+.game-over { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; z-index: 3; border-radius: 14px; color: #fff; text-align: center; background: rgb(35 40 47 / 78%); backdrop-filter: blur(3px); }
 .game-over[hidden] { display: none; }
-.end-panel { position: absolute; top: 0; bottom: 0; width: 51%; }
-.end-panel-left { left: 0; background: var(--end-left); transform: translateX(-104%); }
-.end-panel-right { right: 0; background: var(--end-right); transform: translateX(104%); }
-.game-over:not([hidden]) .end-panel-left { animation: curtain-left .8s cubic-bezier(.22,.78,.25,1) forwards; }
-.game-over:not([hidden]) .end-panel-right { animation: curtain-right .8s cubic-bezier(.22,.78,.25,1) forwards; }
-.game-over-content { position: relative; z-index: 1; display: grid; height: 100%; place-content: center; gap: 8px; opacity: 0; animation: end-content-in .24s ease .8s forwards; }
-.game-over-content p, .game-over-content strong { margin: 0; }.game-over-content p { font-size: 25px; font-weight: 800; }.game-over-content strong { font-size: 17px; }.game-over-content button { margin-top: 8px; padding: 10px 20px; border: 0; border-radius: 10px; color: var(--ink); background: #ffd66b; font-weight: 800; }
-
-@keyframes curtain-left { to { transform: translateX(0); } }
-@keyframes curtain-right { to { transform: translateX(0); } }
-@keyframes end-content-in { to { opacity: 1; transform: translateY(0); } }
+.game-over p, .game-over strong { margin: 0; }.game-over p { font-size: 25px; font-weight: 800; }.game-over strong { font-size: 17px; }.game-over button { margin-top: 8px; padding: 10px 20px; border: 0; border-radius: 10px; color: var(--ink); background: #ffd66b; font-weight: 800; }
 
 @media (max-height: 520px) and (orientation: landscape) {
   .game-shell {
