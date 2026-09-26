@@ -21,6 +21,10 @@ const CLEAR_DELAY = 230;
 const RISE_PAUSE = 360;
 const RISE_ANIMATION_DELAY = 250;
 
+// 皮肤接口：填入图片的相对路径或网址即可覆盖对应颜色皮肤；保留 null 则使用默认颜色。
+// 例如："assets/skin-1.png"。五个槽位会被新生成的方块随机选用。
+const SKIN_SOURCES = [null, null, null, null, null];
+
 const ui = {
   board: document.querySelector("#board"),
   score: document.querySelector("#score"),
@@ -30,12 +34,8 @@ const ui = {
   finalScore: document.querySelector("#final-score"),
   dragGuides: document.querySelector("#drag-guides"),
   dropGuide: document.querySelector("#drop-guide"),
-  skinUpload: document.querySelector("#skin-upload"),
-  resetSkins: document.querySelector("#reset-skins"),
-  skinSlots: [...document.querySelectorAll(".skin-slot")],
 };
 
-const skinImages = Array(SKIN_COUNT).fill(null);
 let blocks = [];
 let nextId = 1;
 let score = 0;
@@ -230,34 +230,19 @@ function render() {
       ui.board.append(node);
     }
     existing.delete(block.id);
-    node.className = `block cat-${block.skin}${skinImages[block.skin] ? " custom-skin" : ""}${block.id === selectedId ? " selected" : ""}${clearingRows.has(block.y) ? " clearing" : ""}`;
+    const skinSource = SKIN_SOURCES[block.skin];
+    node.className = `block cat-${block.skin}${skinSource ? " custom-skin" : ""}${block.id === selectedId ? " selected" : ""}${clearingRows.has(block.y) ? " clearing" : ""}`;
     node.dataset.skin = String(block.skin + 1);
     node.style.setProperty("--x", block.x);
     node.style.setProperty("--y", block.y);
     node.style.setProperty("--w", block.w);
-    node.style.backgroundImage = skinImages[block.skin] ? `url("${skinImages[block.skin]}")` : "";
+    node.style.backgroundImage = skinSource ? `url("${skinSource}")` : "";
     node.setAttribute("aria-label", `宽${block.w}格的方块，第${block.y + 1}行第${block.x + 1}列`);
   });
   existing.forEach((node) => node.remove());
   ui.score.textContent = String(score);
   ui.moves.textContent = String(moves);
   updateDragGuides();
-}
-
-function updateSkinLibrary() {
-  ui.skinSlots.forEach((slot, index) => {
-    slot.style.backgroundImage = skinImages[index] ? `url("${skinImages[index]}")` : "";
-  });
-}
-
-function replaceSkinImages(files) {
-  Array.from(files).slice(0, SKIN_COUNT).forEach((file, index) => {
-    if (!file.type.startsWith("image/")) return;
-    if (skinImages[index]) URL.revokeObjectURL(skinImages[index]);
-    skinImages[index] = URL.createObjectURL(file);
-  });
-  updateSkinLibrary();
-  render();
 }
 
 function updateDragGuides() {
@@ -382,21 +367,8 @@ async function newGame() {
 
 document.querySelector("#restart-button").addEventListener("click", () => void newGame());
 document.querySelector("#again-button").addEventListener("click", () => void newGame());
-ui.skinUpload.addEventListener("change", () => {
-  replaceSkinImages(ui.skinUpload.files);
-  ui.status.textContent = "皮肤库已更新，新生成的方块会随机使用这 5 个皮肤槽位。";
-});
-ui.resetSkins.addEventListener("click", () => {
-  skinImages.forEach((image) => image && URL.revokeObjectURL(image));
-  skinImages.fill(null);
-  ui.skinUpload.value = "";
-  updateSkinLibrary();
-  render();
-  ui.status.textContent = "已恢复默认 1–5 号颜色皮肤。";
-});
 document.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "r") void newGame();
 });
 
-updateSkinLibrary();
 void newGame();

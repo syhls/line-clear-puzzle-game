@@ -10,38 +10,18 @@
   <body>
     <main class="game-shell">
       <header class="game-header">
-        <div>
+        <div class="title-group">
           <p class="eyebrow">8 × 6 PUZZLE</p>
           <h1>猫咪推行消除</h1>
+        </div>
+        <div class="header-metrics" aria-label="游戏数据">
+          <span>分数 <strong id="score">0</strong></span>
+          <span>操作 <strong id="moves">0</strong></span>
         </div>
         <button id="restart-button" class="icon-button" type="button" aria-label="重新开始">
           ↻
         </button>
       </header>
-
-      <section class="scorebar" aria-label="游戏数据">
-        <div><span>分数</span><strong id="score">0</strong></div>
-        <div><span>有效操作</span><strong id="moves">0</strong></div>
-        <div><span>下一次消行</span><strong>+8</strong></div>
-        <details class="skin-library">
-          <summary>方块皮肤</summary>
-          <p>默认有 1–5 号颜色皮肤。可从同一文件夹选择最多 5 张图片，按顺序覆盖皮肤槽位。</p>
-          <div class="skin-actions">
-            <label class="skin-upload-button">
-              选择皮肤文件
-              <input id="skin-upload" type="file" accept="image/*" multiple />
-            </label>
-            <button id="reset-skins" type="button">恢复默认</button>
-          </div>
-          <div id="skin-slots" class="skin-slots" aria-label="五个皮肤槽位">
-            <span class="skin-slot cat-0">1</span>
-            <span class="skin-slot cat-1">2</span>
-            <span class="skin-slot cat-2">3</span>
-            <span class="skin-slot cat-3">4</span>
-            <span class="skin-slot cat-4">5</span>
-          </div>
-        </details>
-      </section>
 
       <section class="board-frame" aria-label="8列6行棋盘">
         <div id="board" class="board" role="application" aria-label="游戏棋盘">
@@ -59,11 +39,6 @@
       <p id="status" class="status" aria-live="polite">
         按住任意方块，向左或向右拖动；松手后自动结算。
       </p>
-
-      <details class="rules">
-        <summary>玩法说明</summary>
-        <p>按住方块左右拖动；拖回原位不会计入操作。松开有效移动的方块后，它会下落、满行消除并加 8 分，随后底部会推入一行不满的随机方块。</p>
-      </details>
     </main>
     <aside class="rotate-notice" aria-live="polite">
       <span aria-hidden="true">↻</span>
