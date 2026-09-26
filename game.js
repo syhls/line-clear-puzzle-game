@@ -29,7 +29,6 @@ const ui = {
   gameOver: document.querySelector("#game-over"),
   finalScore: document.querySelector("#final-score"),
   dragGuides: document.querySelector("#drag-guides"),
-  columnGuide: document.querySelector("#column-guide"),
   dropGuide: document.querySelector("#drop-guide"),
   skinUpload: document.querySelector("#skin-upload"),
   resetSkins: document.querySelector("#reset-skins"),
@@ -268,11 +267,10 @@ function updateDragGuides() {
   if (!shouldShow) return;
 
   const dropY = projectedDropY(block);
-  ui.columnGuide.style.setProperty("--guide-x", block.x);
-  ui.columnGuide.style.setProperty("--guide-w", block.w);
   ui.dropGuide.style.setProperty("--guide-x", block.x);
   ui.dropGuide.style.setProperty("--guide-y", dropY);
   ui.dropGuide.style.setProperty("--guide-w", block.w);
+  ui.dropGuide.hidden = dropY === block.y;
 }
 
 function beginDrag(event, id) {
@@ -281,7 +279,7 @@ function beginDrag(event, id) {
   selectedId = id;
   dragState = { pointerId: event.pointerId, startClientX: event.clientX, originX: selectedBlock().x };
   ui.board.setPointerCapture(event.pointerId);
-  ui.status.textContent = "正在拖动：已点亮所在列，虚线框为下落位置。";
+  ui.status.textContent = "正在拖动：半透明框为松手后的下落位置。";
   render();
 }
 
