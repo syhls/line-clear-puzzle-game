@@ -68,31 +68,20 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   box-shadow: inset 0 0 0 2px #fff8ee;
 }
 
-#drag-guides { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: 10px; }
-#drag-guides[hidden] { display: none; }
-.drop-guide {
+#move-guides { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: 10px; }
+#move-guides[hidden] { display: none; }
+.drop-guide, .origin-guide {
   position: absolute;
   left: calc(var(--guide-x) * var(--cell) + 5px);
   top: calc(var(--guide-y) * var(--cell) + 5px);
   width: calc(var(--guide-w) * var(--cell) - 10px);
   height: calc(var(--cell) - 10px);
-  border: 2px solid rgb(212 82 57 / 72%);
   border-radius: 10px;
-  background: rgb(255 244 189 / 30%);
   transition: left .12s ease, top .12s ease, width .12s ease;
 }
-.drop-guide[hidden] { display: none; }
-.origin-guide {
-  position: absolute;
-  left: calc(var(--guide-x) * var(--cell) + 5px);
-  top: calc(var(--guide-y) * var(--cell) + 5px);
-  width: calc(var(--guide-w) * var(--cell) - 10px);
-  height: calc(var(--cell) - 10px);
-  border: 2px dashed rgb(74 105 150 / 78%);
-  border-radius: 10px;
-  background: rgb(207 227 255 / 24%);
-}
-.origin-guide[hidden] { display: none; }
+.drop-guide { border: 2px solid rgb(212 82 57 / 72%); background: rgb(255 244 189 / 32%); }
+.origin-guide { border: 2px dashed rgb(74 105 150 / 82%); background: rgb(207 227 255 / 26%); }
+.drop-guide[hidden], .origin-guide[hidden] { display: none; }
 
 .block {
   position: absolute;
@@ -105,13 +94,12 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   border-radius: 12px;
   color: #473122;
   box-shadow: inset 0 -4px 0 rgb(79 45 19 / 18%), 0 2px 0 rgb(79 45 19 / 18%);
-  cursor: grab;
-  touch-action: none;
+  cursor: pointer;
+  touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
   transition: left .12s ease, top .18s ease, transform .14s ease, filter .14s ease;
 }
-.block:active { cursor: grabbing; }
 .block:hover { filter: brightness(1.05); transform: translateY(-2px); }
 .block.selected { outline: 3px solid #fff; outline-offset: -5px; transform: translateY(-2px) scale(1.02); }
 .block.clearing { animation: clear-pop .22s ease-in forwards; pointer-events: none; }
@@ -122,6 +110,22 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
 }
 
 .status { grid-area: status; min-height: 22px; margin: 16px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
+
+.control-pad { display: grid; justify-content: center; gap: 8px; margin: 16px auto 0; }
+.direction-pad, .action-pad { display: flex; justify-content: center; gap: 12px; }
+.direction-pad button, .action-pad button {
+  width: clamp(58px, 11vw, 74px); height: clamp(44px, 8vw, 54px);
+  border: 0; border-radius: 14px; color: var(--ink); background: #f5dec2;
+  box-shadow: inset 0 -3px 0 rgb(79 45 19 / 14%); font-size: clamp(28px, 5vw, 34px); line-height: 1;
+  transition: transform .12s ease, background .12s ease;
+}
+.direction-pad button:hover, .action-pad button:hover { background: #ffd66b; transform: translateY(-2px); }
+.direction-pad button:active, .action-pad button:active { transform: translateY(1px); }
+.action-pad .confirm-button, .action-pad .cancel-button { width: clamp(76px, 14vw, 104px); font-size: clamp(16px, 3vw, 20px); font-weight: 800; }
+.action-pad .confirm-button { color: #fff; background: var(--coral); }
+.action-pad .confirm-button:hover { background: #d95b43; }
+.action-pad .cancel-button { color: var(--ink); background: #d9e6ef; }
+.action-pad .cancel-button:hover { background: #c7d9e7; }
 
 .game-over { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; z-index: 3; border-radius: 14px; color: #fff; text-align: center; background: rgb(35 40 47 / 78%); backdrop-filter: blur(3px); }
 .game-over[hidden] { display: none; }
@@ -139,6 +143,9 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   .header-metrics { gap: 5px; font-size: 11px; }
   .header-metrics span { padding: 5px 7px; }
   .header-metrics strong { font-size: 15px; }
+  .control-pad { margin-top: 8px; }
+  .direction-pad button, .action-pad button { width: 52px; height: 40px; font-size: 28px; }
+  .action-pad .confirm-button, .action-pad .cancel-button { width: 76px; font-size: 15px; }
   .status { margin-top: 8px; font-size: 12px; }
 }
 
@@ -158,5 +165,8 @@ h1 { margin: 0; font-size: clamp(25px, 6vw, 34px); letter-spacing: .03em; }
   .header-metrics span { padding: 5px 6px; }
   .header-metrics strong { margin-left: 2px; font-size: 15px; }
   .icon-button { width: 34px; height: 34px; font-size: 20px; }
+  .control-pad { margin-top: 10px; }
+  .direction-pad button, .action-pad button { width: 54px; height: 42px; font-size: 28px; }
+  .action-pad .confirm-button, .action-pad .cancel-button { width: 78px; font-size: 16px; }
   .status { margin-top: 9px; font-size: 12px; }
 }

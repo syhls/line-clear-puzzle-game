@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="8×6 推行消除小游戏原型" />
     <title>客栈住宿</title>
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body>
     <main class="game-shell">
@@ -25,7 +25,7 @@
 
       <section class="board-frame" aria-label="8列6行棋盘">
         <div id="board" class="board" role="application" aria-label="游戏棋盘">
-          <div id="drag-guides" aria-hidden="true" hidden>
+          <div id="move-guides" aria-hidden="true" hidden>
             <div id="origin-guide" class="origin-guide"></div>
             <div id="drop-guide" class="drop-guide"></div>
           </div>
@@ -37,10 +37,21 @@
         </div>
       </section>
 
+      <nav class="control-pad" aria-label="移动与结算控制">
+        <div class="direction-pad" aria-label="移动已选方块">
+          <button id="left-button" type="button" aria-label="向左移动已选方块">←</button>
+          <button id="right-button" type="button" aria-label="向右移动已选方块">→</button>
+        </div>
+        <div class="action-pad" aria-label="操作确认">
+          <button id="cancel-button" class="cancel-button" type="button" aria-label="取消本次调整并复原">取消</button>
+          <button id="confirm-button" class="confirm-button" type="button" aria-label="确认操作并开始结算">确认</button>
+        </div>
+      </nav>
+
       <p id="status" class="status" aria-live="polite">
-        按住任意方块，向左或向右拖动；松手后自动结算。
+        点击方块选中，用左右方向键调整位置；确认后才会下落结算。
       </p>
     </main>
-    <script src="game.js?v=6"></script>
+    <script src="game.js?v=9"></script>
   </body>
 </html>

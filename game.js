@@ -32,7 +32,11 @@ const ui = {
   status: document.querySelector("#status"),
   gameOver: document.querySelector("#game-over"),
   finalScore: document.querySelector("#final-score"),
-  dragGuides: document.querySelector("#drag-guides"),
+  leftButton: document.querySelector("#left-button"),
+  cancelButton: document.querySelector("#cancel-button"),
+  confirmButton: document.querySelector("#confirm-button"),
+  rightButton: document.querySelector("#right-button"),
+  moveGuides: document.querySelector("#move-guides"),
   originGuide: document.querySelector("#origin-guide"),
   dropGuide: document.querySelector("#drop-guide"),
 };
@@ -42,7 +46,9 @@ let nextId = 1;
 let score = 0;
 let moves = 0;
 let selectedId = null;
-let dragState = null;
+let hasPendingMove = false;
+let pendingSnapshot = null;
+let pendingMoveCount = 0;
 let finished = false;
 let isResolving = false;
 let resolutionToken = 0;
@@ -87,6 +93,12 @@ function canFall(block, blockSet = blocks) {
   return block.y < ROWS - 1 && !occupiedBy(blockSet, block, block.x, block.y + 1);
 }
 
+function projectedDropY(block) {
+  let y = block.y;
+  while (y < ROWS - 1 && !occupiedBy(blocks, block, block.x, y + 1)) y += 1;
+  return y;
+}
+
 function dropOneStep(blockSet) {
   let didFall = false;
   [...blockSet].sort((a, b) => b.y - a.y || a.x - b.x).forEach((block) => {
@@ -96,12 +108,6 @@ function dropOneStep(blockSet) {
     }
   });
   return didFall;
-}
-
-function projectedDropY(block) {
-  let y = block.y;
-  while (y < ROWS - 1 && !occupiedBy(blocks, block, block.x, y + 1)) y += 1;
-  return y;
 }
 
 const pause = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -219,6 +225,24 @@ async function pushNewRow(token) {
   return true;
 }
 
+function occupiedRowCount() {
+  return new Set(blocks.map((block) => block.y)).size;
+}
+
+// 消除后棋盘不足两行时，自动补行，避免只剩孤立一行等待玩家操作。
+async function refillSparseBoard(token) {
+  let cleared = 0;
+  let addedRows = 0;
+  while (occupiedRowCount() <= 1) {
+    if (!(await pushNewRow(token)) || token !== resolutionToken) return null;
+    addedRows += 1;
+    const clearedAfterRefill = await resolveChains(token);
+    if (clearedAfterRefill === null || token !== resolutionToken) return null;
+    cleared += clearedAfterRefill;
+  }
+  return { cleared, addedRows };
+}
+
 function render() {
   const existing = new Map([...ui.board.querySelectorAll(".block")].map((node) => [Number(node.dataset.id), node]));
   blocks.forEach((block) => {
@@ -227,7 +251,7 @@ function render() {
       node = document.createElement("button");
       node.type = "button";
       node.dataset.id = String(block.id);
-      node.addEventListener("pointerdown", (event) => beginDrag(event, Number(node.dataset.id)));
+      node.addEventListener("click", () => selectBlock(Number(node.dataset.id)));
       ui.board.append(node);
     }
     existing.delete(block.id);
@@ -238,65 +262,107 @@ function render() {
     node.style.setProperty("--w", block.w);
     node.style.backgroundImage = skinSource ? `url("${skinSource}")` : "";
     node.setAttribute("aria-label", `宽${block.w}格的方块，第${block.y + 1}行第${block.x + 1}列`);
+    node.setAttribute("aria-pressed", String(block.id === selectedId));
   });
   existing.forEach((node) => node.remove());
   ui.score.textContent = String(score);
   ui.moves.textContent = String(moves);
-  updateDragGuides();
+  updateMoveGuides();
 }
 
-function updateDragGuides() {
+function updateMoveGuides() {
   const block = selectedBlock();
-  const shouldShow = block !== null && dragState !== null && !finished && !isResolving;
-  ui.dragGuides.hidden = !shouldShow;
+  const shouldShow = block !== null && !finished && !isResolving;
+  ui.moveGuides.hidden = !shouldShow;
   if (!shouldShow) return;
 
+  const origin = pendingSnapshot?.get(block.id) ?? { x: block.x, y: block.y };
   const dropY = projectedDropY(block);
-  ui.originGuide.style.setProperty("--guide-x", dragState.originX);
-  ui.originGuide.style.setProperty("--guide-y", block.y);
+  ui.originGuide.style.setProperty("--guide-x", origin.x);
+  ui.originGuide.style.setProperty("--guide-y", origin.y);
   ui.originGuide.style.setProperty("--guide-w", block.w);
-  ui.originGuide.hidden = block.x === dragState.originX;
+  ui.originGuide.hidden = origin.x === block.x && origin.y === block.y;
   ui.dropGuide.style.setProperty("--guide-x", block.x);
   ui.dropGuide.style.setProperty("--guide-y", dropY);
   ui.dropGuide.style.setProperty("--guide-w", block.w);
   ui.dropGuide.hidden = dropY === block.y;
 }
 
-function beginDrag(event, id) {
-  if (finished || isResolving || event.button !== 0) return;
-  event.preventDefault();
+function selectBlock(id) {
+  if (finished || isResolving || !blocks.some((block) => block.id === id)) return;
+  // 只允许同时编辑一个方块。改选其他方块时，上一方块未确认的调整自动撤销。
+  const switchedBlock = selectedId !== null && selectedId !== id;
+  const restoredPreviousMove = switchedBlock && restorePendingOperation();
   selectedId = id;
-  dragState = { pointerId: event.pointerId, startClientX: event.clientX, originX: selectedBlock().x };
-  ui.board.setPointerCapture(event.pointerId);
-  ui.status.textContent = "正在拖动：虚线框为原位，半透明框为松手后的下落位置。";
+  ui.status.textContent = restoredPreviousMove
+    ? "已切换方块，上一方块的未确认调整已复原。"
+    : "已选中方块：按 ← / → 键，或点击下方箭头移动一格。";
   render();
 }
 
-function moveTowards(block, wantedX) {
-  const direction = Math.sign(wantedX - block.x);
-  while (direction !== 0 && block.x !== wantedX && canMove(block, direction)) {
-    block.x += direction;
-  }
+function beginPendingOperation() {
+  if (pendingSnapshot !== null) return;
+  pendingSnapshot = new Map(blocks.map((block) => [block.id, { x: block.x, y: block.y }]));
+  pendingMoveCount = 0;
 }
 
-async function finishDrag(cancelled) {
-  if (!dragState) return;
-  const activeDrag = dragState;
-  const block = selectedBlock();
-  dragState = null;
-  if (!block) return;
+function restorePendingOperation() {
+  if (pendingSnapshot === null) return false;
+  blocks.forEach((block) => {
+    const origin = pendingSnapshot.get(block.id);
+    if (origin) {
+      block.x = origin.x;
+      block.y = origin.y;
+    }
+  });
+  moves -= pendingMoveCount;
+  hasPendingMove = false;
+  pendingSnapshot = null;
+  pendingMoveCount = 0;
+  return true;
+}
 
-  if (cancelled) block.x = activeDrag.originX;
-  if (block.x === activeDrag.originX) {
-    selectedId = null;
-    ui.status.textContent = cancelled ? "拖动已取消，本次不计入操作。" : "拖回原位，本次不计入操作。";
-    render();
+function moveSelected(direction) {
+  const block = selectedBlock();
+  if (finished || isResolving) return;
+  if (!block) {
+    ui.status.textContent = "请先点击一个方块，再使用左右方向键移动。";
+    return;
+  }
+  if (!canMove(block, direction)) {
+    ui.status.textContent = "该方向无法移动：会越界或与其他方块重合。";
     return;
   }
 
-  selectedId = null;
+  beginPendingOperation();
+  block.x += direction;
   moves += 1;
+  pendingMoveCount += 1;
+  hasPendingMove = true;
+  ui.status.textContent = "位置已调整。可继续移动方块，完成后按确认开始下落结算。";
+  render();
+}
+
+function cancelPendingMove() {
+  if (finished || isResolving) return;
+  if (pendingSnapshot === null) {
+    ui.status.textContent = "当前没有可取消的调整。";
+    return;
+  }
+  restorePendingOperation();
+  ui.status.textContent = "已取消本次调整，方块和操作步数均已复原。";
+  render();
+}
+
+async function confirmMove() {
+  if (finished || isResolving) return;
+  if (!hasPendingMove) {
+    ui.status.textContent = "请先移动至少一个方块，再按确认结算。";
+    return;
+  }
+
   isResolving = true;
+  ui.status.textContent = "正在下落并结算…";
   render();
   const token = resolutionToken;
   const clearedBeforePush = await resolveChains(token);
@@ -305,35 +371,27 @@ async function finishDrag(cancelled) {
   // 新行推入后也必须重新检查重力与消除；例如右侧上层方块下方为空时，应立即落到底部。
   const clearedAfterPush = await resolveChains(token);
   if (clearedAfterPush === null || token !== resolutionToken) return;
+  const refillResult = await refillSparseBoard(token);
+  if (refillResult === null || token !== resolutionToken) return;
+  if (!selectedBlock()) selectedId = null;
+  hasPendingMove = false;
+  pendingSnapshot = null;
+  pendingMoveCount = 0;
   isResolving = false;
-  const clearedTotal = clearedBeforePush + clearedAfterPush;
-  ui.status.textContent = clearedTotal > 0 ? `消除了 ${clearedTotal} 行，已完成推行结算。` : "已完成推行结算。";
+  const clearedTotal = clearedBeforePush + clearedAfterPush + refillResult.cleared;
+  const refillText = refillResult.addedRows > 0 ? `棋盘不足两行，已自动补入 ${refillResult.addedRows} 行。` : "";
+  ui.status.textContent = clearedTotal > 0
+    ? `消除了 ${clearedTotal} 行，${refillText || "已完成推行结算。"}`
+    : refillText || "已完成推行结算，可继续操作已选方块。";
   render();
 }
-
-ui.board.addEventListener("pointermove", (event) => {
-  if (!dragState || event.pointerId !== dragState.pointerId) return;
-  const block = selectedBlock();
-  if (!block) return;
-  const cellWidth = ui.board.getBoundingClientRect().width / COLS;
-  const wantedX = Math.max(0, Math.min(COLS - block.w, Math.round(dragState.originX + (event.clientX - dragState.startClientX) / cellWidth)));
-  const oldX = block.x;
-  moveTowards(block, wantedX);
-  if (block.x !== oldX) render();
-});
-
-ui.board.addEventListener("pointerup", (event) => {
-  if (dragState && event.pointerId === dragState.pointerId) void finishDrag(false);
-});
-
-ui.board.addEventListener("pointercancel", (event) => {
-  if (dragState && event.pointerId === dragState.pointerId) void finishDrag(true);
-});
 
 function endGame() {
   finished = true;
   selectedId = null;
-  dragState = null;
+  hasPendingMove = false;
+  pendingSnapshot = null;
+  pendingMoveCount = 0;
   isResolving = false;
   ui.finalScore.textContent = `${score} 分`;
   ui.gameOver.hidden = false;
@@ -349,7 +407,9 @@ async function newGame() {
   score = 0;
   moves = 0;
   selectedId = null;
-  dragState = null;
+  hasPendingMove = false;
+  pendingSnapshot = null;
+  pendingMoveCount = 0;
   finished = false;
   isResolving = true;
   clearingRows = new Set();
@@ -364,15 +424,34 @@ async function newGame() {
   ui.status.textContent = "两行初始方块正在从中部一起落下…";
   render();
   if ((await resolveChains(token)) === null || token !== resolutionToken) return;
+  if ((await refillSparseBoard(token)) === null || token !== resolutionToken) return;
   isResolving = false;
-  ui.status.textContent = "初始两行已完成下落检查。按住任意方块，向左或向右拖动；松手后自动结算。";
+  ui.status.textContent = "初始两行已完成下落检查。点击方块选中，调整位置后按确认结算。";
   render();
 }
 
 document.querySelector("#restart-button").addEventListener("click", () => void newGame());
 document.querySelector("#again-button").addEventListener("click", () => void newGame());
+ui.leftButton.addEventListener("click", () => void moveSelected(-1));
+ui.cancelButton.addEventListener("click", () => cancelPendingMove());
+ui.confirmButton.addEventListener("click", () => void confirmMove());
+ui.rightButton.addEventListener("click", () => void moveSelected(1));
 document.addEventListener("keydown", (event) => {
-  if (event.key.toLowerCase() === "r") void newGame();
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    void moveSelected(-1);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    void moveSelected(1);
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    void confirmMove();
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    cancelPendingMove();
+  } else if (event.key.toLowerCase() === "r") {
+    void newGame();
+  }
 });
 
 void newGame();
